@@ -9,37 +9,49 @@ BOT_TOKEN = "7712672910:AAGHmfSmmP_B2qjKkfTbbCNANTpQ_8l1IHc"
 bot = telebot.TeleBot(BOT_TOKEN)
 footer = "\n\n🤴🏻 𝐃𝐞𝐯𝐥𝐨𝐩𝐞𝐫 👨🏻‍💻 : @tera_paglu"
 
-def get_lyrics(song_name):
-    query = song_name.replace(" ", "+")
-    search_url = f"https://search.azlyrics.com/search.php?q={query}"
-    res = requests.get(search_url)
-    soup = BeautifulSoup(res.text, "html.parser")
-    link_tag = soup.select_one("td.text-left a")
-    if not link_tag:
+def get_lyricsmint(song_name):
+    try:
+        search_url = f"https://www.google.com/search?q=site:lyricsmint.com+{song_name}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        page = requests.get(search_url, headers=headers).text
+        link = page.split('/url?q=')[1].split('&')[0]
+        html = requests.get(link, headers=headers).text
+        soup = BeautifulSoup(html, "html.parser")
+        lyrics = soup.find("div", class_="lyrics").get_text("\n").strip()
+        return lyrics
+    except:
         return None
-    lyrics_url = link_tag['href']
-    lyrics_res = requests.get(lyrics_url)
-    lyrics_soup = BeautifulSoup(lyrics_res.text, "html.parser")
-    divs = lyrics_soup.find_all("div", class_=False)
-    lyrics = divs[0].get_text("\n").strip() if divs else "Lyrics not found."
-    return lyrics
+
+def get_lyricsbogie(song_name):
+    try:
+        search_url = f"https://www.google.com/search?q=site:lyricsbogie.com+{song_name}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        page = requests.get(search_url, headers=headers).text
+        link = page.split('/url?q=')[1].split('&')[0]
+        html = requests.get(link, headers=headers).text
+        soup = BeautifulSoup(html, "html.parser")
+        lyrics = soup.find("div", class_="entry-content").get_text("\n").strip()
+        return lyrics
+    except:
+        return None
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "🎵 Send me a song name and I’ll give you Lyrics + MP3!" + footer)
+    bot.reply_to(message, "🎵 Send me a Bollywood song name and I’ll give you Lyrics + MP3!" + footer)
 
 @bot.message_handler(func=lambda m: True)
 def handle_song(message):
     query = message.text
     bot.send_chat_action(message.chat.id, 'typing')
     try:
-        # Get lyrics
-        lyrics = get_lyrics(query)
+        lyrics = get_lyricsmint(query)
+        if not lyrics:
+            lyrics = get_lyricsbogie(query)
         if not lyrics:
             bot.send_message(message.chat.id, "❌ Lyrics not found." + footer)
             return
 
-        # Get YouTube Link
+        # YouTube search
         yt_search = f"https://www.youtube.com/results?search_query={query}+audio"
         page = requests.get(yt_search).text
         video_id = page.split('watch?v=')[1].split('"')[0]
@@ -96,6 +108,6 @@ def handle_callback(call):
         except:
             bot.send_message(call.message.chat.id, "❌ Lyrics not found." + footer)
 
-print("🤖 Paglu Bot is Running with AZLyrics...")
+print("🎶 BabuLyricsBot Running with LyricsMint + LyricsBogie ❤️‍🔥")
 bot.polling()
-        
+    
